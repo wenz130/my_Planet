@@ -1,115 +1,165 @@
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:my_planet/friend.dart';
+import 'package:my_planet/plaza.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        //
-        // application has a blue toolbar. Then, without quitting the app, try
-        // changing the primarySwatch below to Colors.green and then invoke
-        // "hot reload" (press "r" in the console where you ran "flutter run",
-        // or simply save your changes to "hot reload" in a Flutter IDE).
-        // Notice that the counter didn't reset back to zero; the application
-        // is not restarted.
-        primarySwatch: Colors.blue,
+      title: 'My',
+      home: Scaffold(
+        body: GoogleMapScreen(),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class GoogleMapScreen extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _GoogleMapScreenState createState() => _GoogleMapScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _GoogleMapScreenState extends State<GoogleMapScreen> {
+  int _currentIndex = 1;
+  GoogleMapController? _mapController;
+  LatLng? _currentLocation;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
+  void initState() {
+    super.initState();
+    _requestLocationPermission();
+  }
+
+  // 위치 권한 요청 메서드
+  void _requestLocationPermission() async {
+    LocationPermission permission = await Geolocator.requestPermission();
+    if (permission == LocationPermission.whileInUse ||
+        permission == LocationPermission.always) {
+      // 위치 권한을 받은 후에는 위치 정보를 가져온다.
+      _getCurrentLocation();
+    }
+  }
+
+  // 구글 맵 컨트롤러 초기화 및 맵 스타일 설정
+  void _onMapCreated(GoogleMapController controller) {
+    _mapController = controller;
+    _mapController!.setMapStyle(_mapStyle);
+
+    // 구글 맵이 생성된 후 위치 정보를 가져옵니다.
+    _getCurrentLocation();
+  }
+
+  // 현재 위치 가져오기
+  void _getCurrentLocation() async {
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    setState(() {
+      _currentLocation = LatLng(position.latitude, position.longitude);
+    });
+  }
+
+  // 탭 변경 시 호출되는 메서드
+  void _onTap(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  // 화면을 구성하는 위젯을 반환하는 메서드
+  Widget _buildScreen() {
+    switch (_currentIndex) {
+      case 0:
+        return FriendPage();
+      case 1:
+        return _buildHomeScreen();
+      case 2:
+        return Plaza();
+      default:
+        return Container();
+    }
+  }
+
+  // 홈 화면을 구성하는 위젯 반환
+  Widget _buildHomeScreen() {
     return Scaffold(
       appBar: AppBar(
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: Text('hh'),
+        centerTitle: true,
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Invoke "debug painting" (press "p" in the console, choose the
-          // "Toggle Debug Paint" action from the Flutter Inspector in Android
-          // Studio, or the "Toggle Debug Paint" command in Visual Studio Code)
-          // to see the wireframe for each widget.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+      body: Container(
+        // 대형 화면에서의 맵 뷰
+        child: GoogleMap(
+          onMapCreated: _onMapCreated,
+          initialCameraPosition: CameraPosition(
+            target: _currentLocation ?? LatLng(37.5, 127.0), // 초기 맵 중심 위치
+            zoom: 4.0, // 초기 줌 레벨
+          ),
+          myLocationEnabled: true, // 현재 위치 활성화
+          markers: _createMarkers(),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+
+  // 현재 위치에 마커 생성
+  Set<Marker> _createMarkers() {
+    return {
+      if (_currentLocation != null)
+        Marker(
+          markerId: MarkerId('current_location'),
+          position: _currentLocation!,
+          infoWindow: InfoWindow(title: '현재 위치'),
+        ),
+    };
+  }
+
+  // 맵 스타일 설정
+  final String _mapStyle = '''
+  [
+    {
+      "featureType": "poi",
+      "stylers": [{"visibility": "off"}]
+    },
+    {
+      "featureType": "transit",
+      "stylers": [{"visibility": "off"}]
+    }
+  ]
+  ''';
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _buildScreen(),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: _onTap,
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: '친구',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: '홈',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list),
+            label: '게시판',
+          ),
+        ],
+      ),
     );
   }
 }

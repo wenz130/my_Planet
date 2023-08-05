@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.my_planet">
-   <application
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+
+    <application
         android:label="my_planet"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
@@ -30,5 +34,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- API 키 설정 -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAALEo6FieNJMD8OW9Bp64NgzAh1sl_RfU" />
+
+        <!-- 구글 플레이 서비스 메타데이터 추가 -->
+        <meta-data
+            android:name="com.google.android.gms.version"
+            android:value="@integer/google_play_services_version" />
+
     </application>
 </manifest>
